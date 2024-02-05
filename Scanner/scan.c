@@ -33,40 +33,32 @@
 //  29  GS  (group separator)           61  =         93  ]        125  }
 //  30  RS  (record separator)          62  >         94  ^        126  ~
 //  31  US  (unit separator)            63  ?         95  _        127  DEL
-
-int skip(){
+#include "defs.h"
+#include "global_data.h"
+#include "decl.h"
+//reads a single character from the file
+static int next(){
     int c;
-    //32=space 9=htab 10=newline
-    c=next();
-    
-    // "\r" "\f" not used
-    while(c==32 || c==9 || c==10){
-        c=next();
+
+    if(Putchar){
+        c=Putchar;
+        Putchar=0;
+        return c;
+    }
+
+    c=fgetc(File);
+
+    if(c == '\n'){
+        Line++;
     }
     return c;
 }
 
-
-//gets character position from the string by 
-//subtracting the initial pointer to the now pointing pointer
-int get_charpost(char* s,int c){
-    
-    char* p=strchr(s,c);
-    
-    return (p?p-s:-1);
-}
-
-//read one extra character than capable
-//putchar is really handy;
-void putchar(int c){
-    Putchar=c;
-}
-
-//initiates decoding integer literal and stops at unidentified char
-int read_integerliteral(int c){
+//converts integer literal to int
+int scanint(int c){
     int k,val=0;
 
-    while((k=get_charpos('0123456789',c))>=0){
+    while((k=charposi("0123456789",c))>=0){
         val=val*10+k;
         c=next();
     }
@@ -74,20 +66,59 @@ int read_integerliteral(int c){
     return val;
 }
 
-char read_char(){
-    char c;
+
+//skips unwanted characters.
+int skip(){
+    int c;
+    c = next();
     
-    if(Putchar){
-        c=Putchar;
-        Putchar=0;
-        return c;
-    }    
-    
-    c=fgetc(Input_file);
-    if(c=='\n'){
-        Line++;
+    while(c==' ' || c=='\t' || c=='\n' || c=='\r' || c=='\f'){
+        c=next();
     }
     return c;
 }
 
+
+
+//returns position of a character from the string
+//return position or -1 if doesnt exists.
+int charposi(char* s,int c){
+    
+    char* p=strchr(s,c);
+    
+    return (p?p-s:-1);
+}
+
+//scans number and operator tokens
+int scan(struct token* t){
+    int c;
+    c=next();
+
+    switch(c){
+        case '+':
+        t->token=T_PLUS;
+        break;
+        case '-':
+        t->token=T_MINUS;
+        break;
+        case '*':
+        t->token=T_ASTERIK;
+        break;
+        case '/':
+        t->token=T_SLASH;
+        break;
+        default:
+        int a=0;
+        if(a=scanint(c)){
+            t->token=T_INTLIT;
+            t->int_value=a;
+        }else{
+            printf("Unrecognised character %c at line %d\n",c,Line);
+            return 1;
+        }
+         
+    }
+
+    return 0;
+}
 
